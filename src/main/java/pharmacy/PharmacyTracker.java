@@ -25,13 +25,23 @@ public class PharmacyTracker {
         p.addCustomer(ama);
 
         // a normal morning
-        p.dispense(kofi, paracetamol, 2, null);
-        p.dispense(ama, amoxicillin, 1, "Dr. Boateng"); // prescription-only
+        dispense(p, kofi, paracetamol, 2, null);
+        dispense(p,ama, amoxicillin, 1, "Dr. Boateng"); // prescription-only
         p.restock(paracetamol, 50);
 
         // ... and the sort of thing that keeps Akosua up at night:
-        p.dispense(kofi, amoxicillin, 100, "Dr. Boateng"); // far more than we have in stock
+        dispense(p, kofi, amoxicillin, 100, "Dr. Boateng"); // far more than we have in stock
 
         p.printReport();
+    }
+
+    
+    // Tries one dispense; a refusal is printed and the day carries on.
+    private static void dispense(Pharmacy p, Customer c, Medication m, int qty, String prescriber) {
+        try {
+            p.dispense(c, m, qty, prescriber);
+        } catch (DispenseRefusedException e) {
+            System.out.println(e.getMessage());
+        }
     }
 }

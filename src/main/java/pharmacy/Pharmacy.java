@@ -22,27 +22,23 @@ class Pharmacy {
         customers.add(c);
     }
 
-    // Dispense medicine to a customer. The rules depend on the kind of medicine.
-    public void dispense(Customer c, Medication m, int qty, String prescriber) {
-        BigDecimal total = BigDecimal.ZERO;
-        if (m.getCategory() == Category.OTC) {
-            total = c.getKind().applyDiscount(m.getPrice().multiply(BigDecimal.valueOf(qty)));
-            m.removeStock(qty);
-            System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.getName()
-                    + " for GHS " + total.doubleValue());
-        } else if (m.getCategory() == Category.PRESCRIPTION) {
-            if (prescriber == null) {
-                System.out.println("Cannot dispense " + m.getName() + " without a prescriber");
-                return;
-            }
-            total = c.getKind().applyDiscount(m.getPrice().multiply(BigDecimal.valueOf(qty)));
-            m.removeStock(qty);
+        // One path for every category; the category decides its own rule.
+    public void dispense(Customer c, Medication m, int qty, String prescriber)
+            throws DispenseRefusedException {
+        m.getCategory().checkCanDispense(m.getName(), prescriber);
+        BigDecimal total = c.getKind().applyDiscount(m.getPrice().multiply(BigDecimal.valueOf(qty)));
+        m.removeStock(qty);
+        if (m.getCategory().requiresPrescriber()) {
             System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.getName()
                     + " (prescribed by " + prescriber + ") for GHS " + total.doubleValue());
+        } else {
+            System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.getName()
+                    + " for GHS " + total.doubleValue());
         }
         c.recordInHistory("Got " + qty + " x " + m.getName());
         transactions.add(new DispenseRecord(c, m, qty, total, prescriber));
     }
+
 
     public void restock(Medication m, int qty) {
         m.addStock(qty);
