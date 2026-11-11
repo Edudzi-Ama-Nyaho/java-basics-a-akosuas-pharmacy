@@ -11,13 +11,13 @@ public class PharmacyTracker {
     public static void main(String[] args) {
         Pharmacy p = new Pharmacy("Akosua's Pharmacy");
 
-        Medication paracetamol = new Medication("Paracetamol 500mg", 12.50, 100, "OTC");
-        Medication amoxicillin = new Medication("Amoxicillin 250mg", 30.00, 40, "PRESCRIPTION");
+        Medication paracetamol = new Medication("Paracetamol 500mg", 12.50, 100, Category.OTC);
+        Medication amoxicillin = new Medication("Amoxicillin 250mg", 30.00, 40, Category.PRESCRIPTION);
         p.addMedication(paracetamol);
         p.addMedication(amoxicillin);
 
-        Customer kofi = new Customer("Kofi Mensah", "WALK_IN");
-        Customer ama = new Customer("Ama Owusu", "REGISTERED");
+        Customer kofi = new Customer("Kofi Mensah", CustomerKind.WALK_IN);
+        Customer ama = new Customer("Ama Owusu", CustomerKind.REGISTERED);
         ama.phone = "0244 000 000"; // registered patients have contact details on file
         p.addCustomer(kofi);
         p.addCustomer(ama);

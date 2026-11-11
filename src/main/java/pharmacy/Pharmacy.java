@@ -24,21 +24,21 @@ class Pharmacy {
     // Dispense medicine to a customer. The rules depend on the kind of medicine.
     public void dispense(Customer c, Medication m, int qty, String prescriber) {
         double total = 0;
-        if (m.category.equals("OTC")) {
+        if (m.category == Category.OTC) {
             total = m.price * qty;
-            if (c.kind.equals("REGISTERED")) {
+            if (c.kind == CustomerKind.REGISTERED) {
                 total = total * 0.95; // registered patients get 5% off
             }
             m.stock = m.stock - qty;
             System.out.println("Dispensed " + qty + " x " + m.name + " to " + c.name
                     + " for GHS " + total);
-        } else if (m.category.equals("PRESCRIPTION")) {
+        } else if (m.category == Category.PRESCRIPTION) {
             if (prescriber == null) {
                 System.out.println("Cannot dispense " + m.name + " without a prescriber");
                 return;
             }
             total = m.price * qty;
-            if (c.kind.equals("REGISTERED")) {
+            if (c.kind == CustomerKind.REGISTERED) {
                 total = total * 0.95; // registered patients get 5% off
             }
             m.stock = m.stock - qty;
@@ -69,4 +69,3 @@ class Pharmacy {
         System.out.println("Transactions today: " + transactions.size());
     }
 }
-

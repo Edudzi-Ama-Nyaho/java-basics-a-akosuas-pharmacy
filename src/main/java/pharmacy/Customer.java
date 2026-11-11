@@ -5,13 +5,13 @@ import java.util.List;
 
 class Customer {
     public String name;
-    public String kind; // "WALK_IN" or "REGISTERED"
+    public CustomerKind kind;
     public String phone;
     public int id;
     public List<String> history = new ArrayList<>();
     static int counter = 1;
 
-    public Customer(String name, String kind) {
+    public Customer(String name, CustomerKind kind) {
         this.id = counter;
         counter++;
         this.name = name;
