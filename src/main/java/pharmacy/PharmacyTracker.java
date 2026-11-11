@@ -17,8 +17,8 @@ public class PharmacyTracker {
         p.addMedication(amoxicillin);
 
         Customer kofi = new Customer("Kofi Mensah", CustomerKind.WALK_IN);
-        Customer ama = new Customer("Ama Owusu", CustomerKind.REGISTERED);
-        ama.phone = "0244 000 000"; // registered patients have contact details on file
+        // registered patients have contact details on file
+        Customer ama = new Customer("Ama Owusu", CustomerKind.REGISTERED, "0244 000 000");
         p.addCustomer(kofi);
         p.addCustomer(ama);
 
@@ -33,5 +33,3 @@ public class PharmacyTracker {
         p.printReport();
     }
 }
-
-

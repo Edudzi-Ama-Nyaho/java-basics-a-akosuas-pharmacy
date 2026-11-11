@@ -26,11 +26,11 @@ class Pharmacy {
         double total = 0;
         if (m.getCategory() == Category.OTC) {
             total = m.getPrice() * qty;
-            if (c.kind == CustomerKind.REGISTERED) {
+            if (c.getKind() == CustomerKind.REGISTERED) {
                 total = total * 0.95; // registered patients get 5% off
             }
             m.removeStock(qty);
-            System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.name
+            System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.getName()
                     + " for GHS " + total);
         } else if (m.getCategory() == Category.PRESCRIPTION) {
             if (prescriber == null) {
@@ -38,15 +38,15 @@ class Pharmacy {
                 return;
             }
             total = m.getPrice() * qty;
-            if (c.kind == CustomerKind.REGISTERED) {
+            if (c.getKind() == CustomerKind.REGISTERED) {
                 total = total * 0.95; // registered patients get 5% off
             }
             m.removeStock(qty);
-            System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.name
+            System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.getName()
                     + " (prescribed by " + prescriber + ") for GHS " + total);
         }
-        c.history.add("Got " + qty + " x " + m.getName());
-        transactions.add(new Transaction(c.name, m.getName(), qty, total, "DISPENSE"));
+        c.recordInHistory("Got " + qty + " x " + m.getName());
+        transactions.add(new Transaction(c.getName(), m.getName(), qty, total, "DISPENSE"));
     }
 
     public void restock(Medication m, int qty) {
