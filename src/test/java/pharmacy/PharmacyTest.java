@@ -1,11 +1,11 @@
 package pharmacy;
 
+import java.math.BigDecimal;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.math.BigDecimal;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,8 +22,10 @@ class PharmacyTest {
     @BeforeEach
     void setUp() {
         pharmacy = new Pharmacy("Akosua's Pharmacy");
-        paracetamol = new Medication("Paracetamol 500mg", new BigDecimal("12.50"), 100, Category.OTC);
-        amoxicillin = new Medication("Amoxicillin 250mg", new BigDecimal("30.00"), 40, Category.PRESCRIPTION);
+        paracetamol =
+                new Medication("Paracetamol 500mg", new BigDecimal("12.50"), 100, Category.OTC);
+        amoxicillin = new Medication(
+                "Amoxicillin 250mg", new BigDecimal("30.00"), 40, Category.PRESCRIPTION);
         pharmacy.addMedication(paracetamol);
         pharmacy.addMedication(amoxicillin);
         kofi = new Customer("Kofi Mensah", CustomerKind.WALK_IN);
@@ -85,8 +87,10 @@ class PharmacyTest {
     @Test
     @DisplayName("Zero or negative quantities are rejected and stock is unchanged")
     void invalidQuantitiesRejected() {
-        assertThrows(IllegalArgumentException.class, () -> pharmacy.dispense(kofi, paracetamol, 0, null));
-        assertThrows(IllegalArgumentException.class, () -> pharmacy.dispense(kofi, paracetamol, -5, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> pharmacy.dispense(kofi, paracetamol, 0, null));
+        assertThrows(IllegalArgumentException.class,
+                () -> pharmacy.dispense(kofi, paracetamol, -5, null));
         assertThrows(IllegalArgumentException.class, () -> pharmacy.restock(paracetamol, -50));
         assertEquals(100, paracetamol.getStock());
         assertEquals(0, pharmacy.getTransactions().size());
@@ -100,7 +104,8 @@ class PharmacyTest {
         MissingPrescriberException e = assertThrows(MissingPrescriberException.class,
                 () -> pharmacy.dispense(ama, amoxicillin, 1, null));
         assertEquals("Cannot dispense Amoxicillin 250mg without a prescriber", e.getMessage());
-        assertThrows(MissingPrescriberException.class, () -> pharmacy.dispense(ama, amoxicillin, 1, "  "));
+        assertThrows(MissingPrescriberException.class,
+                () -> pharmacy.dispense(ama, amoxicillin, 1, "  "));
         assertEquals(40, amoxicillin.getStock());
         assertEquals(0, pharmacy.getTransactions().size());
     }

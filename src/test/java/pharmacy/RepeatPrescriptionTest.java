@@ -23,8 +23,10 @@ class RepeatPrescriptionTest {
     @BeforeEach
     void setUp() {
         pharmacy = new Pharmacy("Akosua's Pharmacy");
-        amoxicillin = new Medication("Amoxicillin 250mg", new BigDecimal("30.00"), 39, Category.PRESCRIPTION);
-        paracetamol = new Medication("Paracetamol 500mg", new BigDecimal("12.50"), 148, Category.OTC);
+        amoxicillin = new Medication(
+                "Amoxicillin 250mg", new BigDecimal("30.00"), 39, Category.PRESCRIPTION);
+        paracetamol =
+                new Medication("Paracetamol 500mg", new BigDecimal("12.50"), 148, Category.OTC);
         pharmacy.addMedication(amoxicillin);
         pharmacy.addMedication(paracetamol);
         ama = new Customer("Ama Owusu", CustomerKind.REGISTERED, "0244 000 000");
@@ -38,18 +40,21 @@ class RepeatPrescriptionTest {
     @Test
     @DisplayName("Recommends ordering exactly the shortfall for the next 7 days")
     void recommendsShortfall() {
-        // Ama: 10 every 3 days = 3 pick-ups in 7 days = 30. Yaw: 20 weekly = 20. Total 50, have 39.
-        pharmacy.addRepeatPrescription(new RepeatPrescription(ama, amoxicillin, 10, 3, "Dr. Boateng"));
-        pharmacy.addRepeatPrescription(new RepeatPrescription(yaw, amoxicillin, 20, 7, "Dr. Mensah"));
+        // Ama: 10 every 3 days = 3 pick-ups in 7 days = 30. Yaw: 20 weekly = 20.
+        // Total 50, have 39, so order 11.
+        pharmacy.addRepeatPrescription(
+                new RepeatPrescription(ama, amoxicillin, 10, 3, "Dr. Boateng"));
+        pharmacy.addRepeatPrescription(
+                new RepeatPrescription(yaw, amoxicillin, 20, 7, "Dr. Mensah"));
 
         List<RestockRecommendation> recommendations = pharmacy.restockRecommendations();
 
         assertEquals(1, recommendations.size());
-        RestockRecommendation r = recommendations.get(0);
-        assertTrue(r.medication() == amoxicillin);
-        assertEquals(50, r.needed());
-        assertEquals(39, r.inStock());
-        assertEquals(11, r.toOrder());
+        RestockRecommendation recommendation = recommendations.get(0);
+        assertTrue(recommendation.medication() == amoxicillin);
+        assertEquals(50, recommendation.needed());
+        assertEquals(39, recommendation.inStock());
+        assertEquals(11, recommendation.toOrder());
     }
 
     @Test
@@ -62,8 +67,10 @@ class RepeatPrescriptionTest {
     @Test
     @DisplayName("Removing a repeat prescription stops it counting")
     void removeStopsCounting() {
-        pharmacy.addRepeatPrescription(new RepeatPrescription(ama, amoxicillin, 10, 3, "Dr. Boateng"));
-        pharmacy.addRepeatPrescription(new RepeatPrescription(yaw, amoxicillin, 20, 7, "Dr. Mensah"));
+        pharmacy.addRepeatPrescription(
+                new RepeatPrescription(ama, amoxicillin, 10, 3, "Dr. Boateng"));
+        pharmacy.addRepeatPrescription(
+                new RepeatPrescription(yaw, amoxicillin, 20, 7, "Dr. Mensah"));
         pharmacy.removeRepeatPrescription(yaw, amoxicillin);
         assertEquals(1, pharmacy.getRepeatPrescriptions().size());
         assertEquals(0, pharmacy.restockRecommendations().size());
@@ -74,11 +81,13 @@ class RepeatPrescriptionTest {
     @Test
     @DisplayName("The same patient cannot have the same repeat prescription twice")
     void duplicateRejected() {
-        pharmacy.addRepeatPrescription(new RepeatPrescription(ama, amoxicillin, 10, 3, "Dr. Boateng"));
+        pharmacy.addRepeatPrescription(
+                new RepeatPrescription(ama, amoxicillin, 10, 3, "Dr. Boateng"));
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
                 () -> pharmacy.addRepeatPrescription(
                         new RepeatPrescription(ama, amoxicillin, 5, 7, "Dr. Boateng")));
-        assertEquals("Ama Owusu already has a repeat prescription for Amoxicillin 250mg", e.getMessage());
+        assertEquals("Ama Owusu already has a repeat prescription for Amoxicillin 250mg",
+                e.getMessage());
     }
 
     @Test
@@ -88,7 +97,8 @@ class RepeatPrescriptionTest {
                 () -> new RepeatPrescription(kofi, paracetamol, 10, 7, null));
         Customer stranger = new Customer("Esi Asante", CustomerKind.REGISTERED);
         assertThrows(IllegalArgumentException.class,
-                () -> pharmacy.addRepeatPrescription(new RepeatPrescription(stranger, paracetamol, 10, 7, null)));
+                () -> pharmacy.addRepeatPrescription(
+                        new RepeatPrescription(stranger, paracetamol, 10, 7, null)));
     }
 
     @Test
