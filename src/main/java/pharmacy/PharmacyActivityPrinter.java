@@ -9,7 +9,11 @@ import java.util.List;
  */
 class PharmacyActivityPrinter {
 
-    /** Money is printed with doubleValue() so the text matches the original (25.0, 28.5). */
+    /**
+     * Money is printed with doubleValue() so the text matches the original (25.0, 28.5).
+     * This is display formatting only: every calculation stays in BigDecimal, and pharmacy
+     * totals are far too small for doubleValue() to lose precision.
+     */
     void printDispense(DispenseRecord record) {
         Medication medication = record.medication();
         String prescribedBy = medication.getCategory().requiresPrescriber()

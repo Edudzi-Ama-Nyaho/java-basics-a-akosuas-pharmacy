@@ -6,7 +6,13 @@ negative. This version is a rebuild: it behaves exactly as the original does, ex
 **stock can never go below zero**. It is split into small classes, so each rule lives in one
 place and outside code cannot put the pharmacy into an invalid state.
 
-- **Diagnosis** of the original: [`DIAGNOSIS.md`](DIAGNOSIS.md) (committed before any code change)
+The most dangerous problem in the original was that **stock could go below zero** (Amoxicillin
+ended the day at -61): in a pharmacy the count is how staff know what medicine physically
+exists, so a wrong count is a patient-safety and legal risk. The full ranked diagnosis is in
+`DIAGNOSIS.md`.
+
+- **Diagnosis** of the original: [`DIAGNOSIS.md`](DIAGNOSIS.md), committed in `df559a8`,
+  before the first code change (`87d546a`)
 - **Evidence** that behaviour is preserved: [`evidence/`](evidence/)
 - **Diagrams**: [`docs/diagrams/`](docs/diagrams/) (`class-diagram` and `dispense-flow` are the
   original sketch; `final-class-diagram` and `final-dispense-flow` show the code as built)
@@ -39,12 +45,14 @@ mvn clean test
 main program's output is unchanged):
 
 ```bash
-mvn test-compile
-java -cp "target/classes;target/test-classes" pharmacy.RepeatPrescriptionDemo   # Windows
-java -cp "target/classes:target/test-classes" pharmacy.RepeatPrescriptionDemo   # macOS/Linux
+mvn -q test-compile exec:java \
+  -Dexec.mainClass=pharmacy.RepeatPrescriptionDemo -Dexec.classpathScope=test
 ```
 
-GitHub Actions runs `mvn -B test` on every push (`.github/workflows/build.yml`).
+The same numbers are also checked automatically by `RepeatPrescriptionTest`.
+
+GitHub Actions runs `mvn -B test` on JDK 21 on every push (`.github/workflows/build.yml`).
+`pom.xml` sets `maven.compiler.release` to 21.
 
 ## Behaviour: what changed and what didn't
 
@@ -84,7 +92,7 @@ Invalid input that the demo never uses is now rejected (see D7 below).
 
 | Group | Classes | Job |
 |---|---|---|
-| Run and output | `PharmacyTracker`, `PharmacyActivityPrinter` | Runs the original demo; **all** output text lives in the printer, so business classes never print. |
+| Run and output | `PharmacyTracker`, `PharmacyActivityPrinter` | `PharmacyTracker` only wires up the original demo (no business logic); **all** output text lives in the printer, so business classes never print. |
 | Core | `Pharmacy`, `Medication`, `Customer`, `Category`, `CustomerKind` | `Pharmacy` coordinates; each other class owns its own data and rule. |
 | Records | `Transaction` (sealed), `DispenseRecord`, `RestockRecord` | Immutable facts about what happened. |
 | Refusals | `DispenseRefusedException`, `InsufficientStockException`, `MissingPrescriberException` | The business saying no. |
@@ -112,12 +120,12 @@ leaves stock, history and transactions untouched.
 | # | Decision | Why | Alternative I didn't choose |
 |---|---|---|---|
 | D1 | **Categories are an enum with behaviour.** Each `Category` knows whether it needs a prescriber and checks it itself (`checkCanDispense`). | The rule lives with the category, in one place. A typo like `"Prescription"` no longer compiles, where the original's free-text String silently skipped the check. | A `switch` on the category (every switch must be found and edited); a subclass per category (more classes and inheritance for a single yes/no difference). |
-| D2 | **Money is `BigDecimal`**, printed with `doubleValue()`. | `double` has rounding errors. Printing a `BigDecimal` directly gives `25.00` instead of `25.0`, which would change the output. `0.95` is built from a String so it is exact. | Keeping `double`. |
-| D3 | **Refusals are checked exceptions.** | The original printed and returned, so the caller couldn't tell a dispense failed. A checked exception makes the compiler force every caller to handle a refusal. `main` catches it in one helper, prints the message and carries on, as the original did. | Unchecked exceptions (easy to forget); returning `null` or `false`. |
+| D2 | **Money is `BigDecimal`**, printed with `doubleValue()`. | `double` has rounding errors, so every calculation stays in `BigDecimal`. `doubleValue()` is used **only to format the printed total**, because printing a `BigDecimal` directly gives `25.00` instead of `25.0`, which would change the output; pharmacy totals are far below the size where this could lose precision. A comment in `PharmacyActivityPrinter` says the same. `0.95` is built from a String so it is exact. | Keeping `double`. |
+| D3 | **Refusals are checked exceptions.** | The original printed and returned, so the caller couldn't tell a dispense failed. A checked exception makes the compiler force every caller to handle a refusal. `main` catches it in one helper, prints the message and carries on, as the original did. The helper catches **only** `DispenseRefusedException`, so programming errors are never hidden. | Unchecked exceptions (easy to forget); returning `null` or `false`. |
 | D4 | **History is still recorded for every customer, walk-ins included.** | The original does this, and only the stock rule may change behaviour. If Akosua wants walk-in history dropped, it is a one-line change in `Pharmacy.dispense`. | Recording registered patients only. |
 | D5 | **Package `pharmacy`.** | Google Java Style forbids the default package. A short name keeps the folders and run command simple for a single in-house program. | `com.amalitech.pharmacy`: the reversed-domain convention matters for shared libraries, not this program. |
 | D6 | **The improvement is a business feature** (repeat-prescription restock recommendations), plus tests and CI. | It uses data the pharmacy already holds to stop patients leaving empty-handed. Tests and CI protect everything else. | Tests alone (useful, but they help the developer, not the pharmacy). |
-| D7 | **Invalid input is rejected**: zero or negative quantities, a negative price, negative stock and blank names throw `IllegalArgumentException`; a missing object throws `NullPointerException`. A **blank** prescriber now counts as missing, so it is refused like a null one. | In the original, a negative dispense added stock and `""` counted as a prescriber. Invalid input is a programming error, not a business refusal, so it uses a different exception. The demo never uses such values, so the output is unchanged. | Keeping the defects to match the original exactly. |
+| D7 | **Invalid input is rejected**: zero or negative quantities, a negative price, negative stock and blank names throw `IllegalArgumentException`; a missing object throws `NullPointerException`. A **blank or whitespace-only** prescriber now counts as missing, so it is refused like a null one. | In the original, a negative dispense added stock and `""` counted as a prescriber. Invalid input is a programming error, not a business refusal, so it uses a different exception and is **not caught**: it stops the program with a clear message instead of carrying on in a bad state. The demo never uses such values, so the output is unchanged. | Keeping the defects to match the original exactly. |
 | D8 | **The output class is `PharmacyActivityPrinter`.** | It prints every dispense, restock and refusal as it happens, as well as the end-of-day report. | `ReportPrinter` (the name in my sketch): "report" suggested only the end-of-day summary. |
 
 **What changed from the sketch in `DIAGNOSIS.md`:**
@@ -126,7 +134,6 @@ leaves stock, history and transactions untouched.
 - The original `id` fields and static counters on medications and customers were removed. They were never read, and records now hold the real objects instead of names, so every dispense can be traced.
 - Customer IDs were added back, but in `Pharmacy` (a `Map<Integer, Customer>`), as part of the improvement. `addCustomer` returns the ID and `findCustomer(id)` looks a customer up. The pharmacy hands out the IDs, so two pharmacies can't clash through a shared static counter.
 - `Category` exposes `requiresPrescriber()`, which the printer uses to choose the message format and `RepeatPrescription` uses for its own check.
-- Short names like `m`, `c`, `qty` and `p` were spelled out.
 
 ### Adding controlled substances
 
@@ -183,14 +190,19 @@ so 50 are needed against 39 in stock.
   expire.
 - **The main program's output is unchanged.** The recommendations are returned as data and
   printed only when asked for (the demo, and the tests).
+- **Same package, no new coupling.** The improvement only uses the public face of the core
+  classes (getters and `Category.requiresPrescriber()`), never their fields. The customer
+  register stays in `Pharmacy` because it is a small map today; if customer management grows,
+  it can move into its own class without touching the rest.
 
 ## Tests
 
 `src/test/java/pharmacy/`:
 - `PharmacyTest` (13 tests): the original's totals and discount, stock after a dispense and a
   restock, the stock rule (refused, and exactly-zero allowed), invalid quantities, the
-  prescriber rule (missing and blank), protected history and lists, phone numbers, invalid
-  objects, and customer IDs.
+  prescriber rule (missing and whitespace-only), protected history and lists, phone numbers,
+  invalid objects, and customer IDs. Each refusal test checks that stock and transactions are
+  unchanged, and the low-stock refusal also checks that history is unchanged.
 - `RepeatPrescriptionTest` (7 tests): validation, duplicates, removal, rounding pick-ups, and
   the "order 11" example.
 - `RepeatPrescriptionDemo`: the printed example above.
