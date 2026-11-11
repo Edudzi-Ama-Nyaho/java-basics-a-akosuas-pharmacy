@@ -1,0 +1,127 @@
+@startuml class-diagram
+title Akosua's Pharmacy - planned structure
+
+skinparam dpi 150
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontSize 13
+skinparam packageStyle rectangle
+hide empty members
+
+package "Run and output" {
+  class PharmacyTracker {
+    .. runs the original demo; catches refusals and prints them ..
+    + {static} main(String[]) : void
+  }
+  class ReportPrinter {
+    .. all output text in one place; money via doubleValue() ..
+    + printDispense(record : DispenseRecord) : void
+    + printRestock(record : RestockRecord) : void
+    + printEndOfDay(pharmacy : Pharmacy) : void
+  }
+}
+
+package "Core" {
+  class Pharmacy {
+    .. coordinates: validate > category rule > price > take stock > record ..
+    - name : String
+    - medications : List<Medication>
+    - customers : List<Customer>
+    - transactions : List<Transaction>
+    --
+    + addMedication(medication : Medication) : void
+    + addCustomer(customer : Customer) : void
+    + dispense(customer : Customer, medication : Medication, qty : int, prescriber : String) : DispenseRecord
+    + restock(medication : Medication, qty : int) : RestockRecord
+    + getName() : String
+    + getMedications() : List<Medication>  // List.copyOf
+    + getTransactions() : List<Transaction>  // List.copyOf
+  }
+  class Medication {
+    .. only owner of the stock count; refuses if qty > stock ..
+    - name : String
+    - price : BigDecimal
+    - category : Category
+    - stock : int
+    --
+    + Medication(name : String, price : BigDecimal, initialStock : int, category : Category)
+    ~ removeStock(qty : int) : void
+    ~ addStock(qty : int) : void
+    + getName() : String
+    + getPrice() : BigDecimal
+    + getCategory() : Category
+    + getStock() : int
+  }
+  class Customer {
+    .. history: only Pharmacy adds; callers get a copy ..
+    - name : String
+    - kind : CustomerKind
+    - phone : String
+    - history : List<String>
+    --
+    + Customer(name : String, kind : CustomerKind)
+    + Customer(name : String, kind : CustomerKind, phone : String)
+    ~ recordInHistory(entry : String) : void
+    + getName() : String
+    + getKind() : CustomerKind
+    + getHistory() : List<String>  // List.copyOf
+  }
+  enum Category {
+    OTC(false)
+    PRESCRIPTION(true)
+    .. controlled substances = add CONTROLLED(true) ..
+    - requiresPrescriber : boolean
+    --
+    + checkCanDispense(medicationName : String, prescriber : String) : void
+  }
+  enum CustomerKind {
+    WALK_IN(1.00)
+    REGISTERED(0.95)
+    .. the discount lives in one place ..
+    - priceMultiplier : BigDecimal
+    --
+    + applyDiscount(total : BigDecimal) : BigDecimal
+  }
+}
+
+package "Records (immutable)" {
+  interface Transaction <<sealed>> {
+    + medication() : Medication
+    + quantity() : int
+  }
+  class DispenseRecord <<record>> {
+    customer : Customer
+    medication : Medication
+    quantity : int
+    total : BigDecimal
+    prescriber : String
+  }
+  class RestockRecord <<record>> {
+    medication : Medication
+    quantity : int
+  }
+}
+
+package "Refusals" {
+  class DispenseRefusedException <<checked>> {
+    + DispenseRefusedException(message : String)
+  }
+  class InsufficientStockException
+  class MissingPrescriberException
+}
+
+PharmacyTracker -right..> ReportPrinter : prints with
+PharmacyTracker ..> Pharmacy : calls
+Pharmacy "1" o-- "*" Medication
+Pharmacy "1" o-- "*" Customer
+Pharmacy "1" *-right- "*" Transaction
+Medication --> Category
+Customer --> CustomerKind
+Transaction <|.. DispenseRecord
+Transaction <|.. RestockRecord
+DispenseRefusedException <|-- InsufficientStockException
+DispenseRefusedException <|-- MissingPrescriberException
+Medication ..> InsufficientStockException : throws
+Category ..> MissingPrescriberException : throws
+
+@enduml

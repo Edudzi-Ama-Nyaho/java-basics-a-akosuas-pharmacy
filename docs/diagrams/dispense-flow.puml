@@ -1,0 +1,62 @@
+@startuml dispense-flow
+title One dispense: from main down to the stock check
+
+skinparam dpi 150
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam noteBackgroundColor #FFFBE6
+skinparam ActivityBackgroundColor #FEFECE
+
+start
+:**PharmacyTracker (main)**
+pharmacy.dispense(customer, medication, qty, prescriber);
+
+:**Pharmacy**
+validate input: customer and medication not null, qty > 0;
+if (input valid?) then (no)
+  :throw IllegalArgumentException
+(a programming error, not a business refusal);
+  stop
+endif
+
+:**Category**
+checkCanDispense(name, prescriber);
+if (prescriber required
+AND missing or blank?) then (yes)
+  :throw MissingPrescriberException
+"Cannot dispense <name> without a prescriber";
+  :**main** catches and prints the message;
+  note right: Nothing changed (same as the original)
+  stop
+endif
+
+:**Pharmacy**
+total = price x qty
+total = customer.getKind().applyDiscount(total);
+
+:**Medication**
+removeStock(qty);
+if (qty > stock?) then (yes)
+  :throw InsufficientStockException
+"Cannot dispense <qty> x <name>: only <stock> in stock";
+  :**main** catches and prints the message;
+  note right
+    NEW behaviour (the one allowed change):
+    refuse instead of going negative.
+    Nothing is recorded.
+  end note
+  stop
+endif
+:**Medication**
+stock = stock - qty;
+
+:**Pharmacy**
+customer.recordInHistory("Got <qty> x <name>")
+create DispenseRecord and add it to transactions
+return the record;
+
+:**PharmacyTracker (main)**
+reportPrinter.printDispense(record)
+"Dispensed <qty> x <name> to <customer> [(prescribed by X)] for GHS <total>";
+stop
+@enduml
