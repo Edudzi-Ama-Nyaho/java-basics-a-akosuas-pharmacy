@@ -4,7 +4,10 @@
 //
 // Run it as-is first to see what it currently does before you change anything.
 
-import java.util.*;
+package pharmacy;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class PharmacyTracker {
 
