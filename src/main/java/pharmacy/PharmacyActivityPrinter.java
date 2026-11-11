@@ -1,5 +1,7 @@
 package pharmacy;
 
+import java.util.List;
+
 /**
  * Prints the pharmacy's activity: each dispense, restock and refusal as it happens,
  * then the end-of-day stock report. It is the only class that writes output,
@@ -33,5 +35,17 @@ class PharmacyActivityPrinter {
             System.out.println("  " + m.getName() + " (" + m.getCategory() + "): " + m.getStock() + " in stock");
         }
         System.out.println("Transactions today: " + pharmacy.getTransactions().size());
+    }
+
+    void printRestockRecommendations(List<RestockRecommendation> recommendations) {
+        System.out.println("Restock needed for repeat prescriptions (next "
+                + Pharmacy.PLANNING_DAYS + " days):");
+        if (recommendations.isEmpty()) {
+            System.out.println("  None - stock covers all upcoming pick-ups");
+        }
+        for (RestockRecommendation r : recommendations) {
+            System.out.println("  " + r.medication().getName() + ": need " + r.needed()
+                    + ", have " + r.inStock() + ", order " + r.toOrder());
+        }
     }
 }
