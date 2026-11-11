@@ -6,13 +6,15 @@
 
 package pharmacy;
 
+import java.math.BigDecimal;
+
 public class PharmacyTracker {
 
     public static void main(String[] args) {
         Pharmacy p = new Pharmacy("Akosua's Pharmacy");
 
-        Medication paracetamol = new Medication("Paracetamol 500mg", 12.50, 100, Category.OTC);
-        Medication amoxicillin = new Medication("Amoxicillin 250mg", 30.00, 40, Category.PRESCRIPTION);
+        Medication paracetamol = new Medication("Paracetamol 500mg", new BigDecimal("12.50"), 100, Category.OTC);
+        Medication amoxicillin = new Medication("Amoxicillin 250mg", new BigDecimal("30.00"), 40, Category.PRESCRIPTION);
         p.addMedication(paracetamol);
         p.addMedication(amoxicillin);
 

@@ -1,12 +1,14 @@
 package pharmacy;
 
+import java.math.BigDecimal;
+
 class Medication {
     private final String name;
-    private final double price;
+    private final BigDecimal price;
     private final Category category;
     private int stock;
 
-    Medication(String name, double price, int initialStock, Category category) {
+    Medication(String name, BigDecimal price, int initialStock, Category category) {
         this.name = name;
         this.price = price;
         this.stock = initialStock;
@@ -17,7 +19,7 @@ class Medication {
         return name;
     }
 
-    double getPrice() {
+    BigDecimal getPrice() {
         return price;
     }
 

@@ -1,5 +1,6 @@
 package pharmacy;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,27 +24,21 @@ class Pharmacy {
 
     // Dispense medicine to a customer. The rules depend on the kind of medicine.
     public void dispense(Customer c, Medication m, int qty, String prescriber) {
-        double total = 0;
+        BigDecimal total = BigDecimal.ZERO;
         if (m.getCategory() == Category.OTC) {
-            total = m.getPrice() * qty;
-            if (c.getKind() == CustomerKind.REGISTERED) {
-                total = total * 0.95; // registered patients get 5% off
-            }
+            total = c.getKind().applyDiscount(m.getPrice().multiply(BigDecimal.valueOf(qty)));
             m.removeStock(qty);
             System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.getName()
-                    + " for GHS " + total);
+                    + " for GHS " + total.doubleValue());
         } else if (m.getCategory() == Category.PRESCRIPTION) {
             if (prescriber == null) {
                 System.out.println("Cannot dispense " + m.getName() + " without a prescriber");
                 return;
             }
-            total = m.getPrice() * qty;
-            if (c.getKind() == CustomerKind.REGISTERED) {
-                total = total * 0.95; // registered patients get 5% off
-            }
+            total = c.getKind().applyDiscount(m.getPrice().multiply(BigDecimal.valueOf(qty)));
             m.removeStock(qty);
             System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.getName()
-                    + " (prescribed by " + prescriber + ") for GHS " + total);
+                    + " (prescribed by " + prescriber + ") for GHS " + total.doubleValue());
         }
         c.recordInHistory("Got " + qty + " x " + m.getName());
         transactions.add(new Transaction(c.getName(), m.getName(), qty, total, "DISPENSE"));
@@ -51,7 +46,7 @@ class Pharmacy {
 
     public void restock(Medication m, int qty) {
         m.addStock(qty);
-        transactions.add(new Transaction("(supplier)", m.getName(), qty, 0, "RESTOCK"));
+        transactions.add(new Transaction("(supplier)", m.getName(), qty, BigDecimal.ZERO, "RESTOCK"));
         System.out.println("Restocked " + qty + " x " + m.getName());
     }
 
