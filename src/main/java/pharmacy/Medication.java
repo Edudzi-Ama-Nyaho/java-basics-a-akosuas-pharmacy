@@ -31,11 +31,20 @@ class Medication {
         return stock;
     }
 
-    void removeStock(int qty) {
+    void removeStock(int qty) throws InsufficientStockException {
+        if (qty <= 0) {
+            throw new IllegalArgumentException("Quantity must be positive, got " + qty);
+        }
+        if (qty > stock) {
+            throw new InsufficientStockException(name, qty, stock);
+        }
         stock = stock - qty;
     }
 
     void addStock(int qty) {
+        if (qty <= 0) {
+            throw new IllegalArgumentException("Restock quantity must be positive, got " + qty);
+        }
         stock = stock + qty;
     }
 }
