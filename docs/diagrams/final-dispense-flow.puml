@@ -1,0 +1,72 @@
+@startuml final-dispense-flow
+title One dispense: from main down to the stock check
+
+skinparam dpi 150
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam noteBackgroundColor #FFFBE6
+skinparam ActivityBackgroundColor #FEFECE
+
+start
+:**PharmacyTracker (main)**
+dispense helper calls
+pharmacy.dispense(customer, medication, quantity, prescriber);
+
+:**Pharmacy**
+customer and medication must not be null;
+if (null?) then (yes)
+  :throw NullPointerException
+(a programming error, not a business refusal);
+  stop
+endif
+
+:**Category**
+checkCanDispense(medicationName, prescriber);
+if (prescriber required
+AND missing or blank?) then (yes)
+  :throw MissingPrescriberException
+"Cannot dispense <name> without a prescriber";
+  :**main** helper catches it;
+  :**PharmacyActivityPrinter**
+printRefusal(message);
+  note right: Nothing changed (same as the original)
+  stop
+endif
+
+:**Pharmacy**
+total = price x quantity
+total = customer.getKind().applyDiscount(total);
+
+:**Medication**
+removeStock(quantity);
+if (quantity <= 0?) then (yes)
+  :throw IllegalArgumentException
+(invalid input; nothing changes);
+  stop
+endif
+if (quantity > stock?) then (yes)
+  :throw InsufficientStockException
+"Cannot dispense <quantity> x <name>: only <stock> in stock";
+  :**main** helper catches it;
+  :**PharmacyActivityPrinter**
+printRefusal(message);
+  note right
+    NEW behaviour (the one allowed change):
+    refuse instead of going negative.
+    Nothing is recorded.
+  end note
+  stop
+endif
+:**Medication**
+stock = stock - quantity;
+
+:**Pharmacy**
+customer.recordInHistory("Got <quantity> x <name>")
+create DispenseRecord and add it to transactions
+return the record;
+
+:**PharmacyActivityPrinter**
+printDispense(record)
+"Dispensed <quantity> x <name> to <customer> [(prescribed by X)] for GHS <total>";
+stop
+@enduml

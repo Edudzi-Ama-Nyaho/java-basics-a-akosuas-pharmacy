@@ -1,0 +1,153 @@
+@startuml final-class-diagram
+title Akosua's Pharmacy - final structure (as built)
+
+skinparam dpi 150
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontSize 13
+skinparam packageStyle rectangle
+hide empty members
+
+legend bottom right
+  - private   ~ package-private   + public
+  Only code inside the pharmacy package can call ~ members.
+endlegend
+
+package "Run and output" {
+  class PharmacyTracker {
+    .. runs the original demo; prints refusals and carries on ..
+    + {static} main(String[]) : void
+    - {static} dispense(pharmacy, printer, customer, medication, quantity, prescriber) : void
+  }
+  class PharmacyActivityPrinter {
+    .. all output text in one place; money via doubleValue() ..
+    ~ printDispense(record : DispenseRecord) : void
+    ~ printRestock(record : RestockRecord) : void
+    ~ printRefusal(message : String) : void
+    ~ printEndOfDay(pharmacy : Pharmacy) : void
+    ~ printRestockRecommendations(recommendations : List<RestockRecommendation>) : void
+  }
+}
+
+package "Core" {
+  class Pharmacy {
+    .. coordinates: category rule > price > take stock > record ..
+    - name : String
+    - medications : List<Medication>
+    - customers : Map<Integer, Customer>
+    - transactions : List<Transaction>
+    - repeatPrescriptions : List<RepeatPrescription>
+    - nextCustomerId : int
+    ~ {static} PLANNING_DAYS : int = 7
+    --
+    ~ addMedication(medication : Medication) : void
+    ~ addCustomer(customer : Customer) : int
+    ~ findCustomer(id : int) : Customer
+    ~ dispense(customer, medication, quantity : int, prescriber : String) : DispenseRecord
+    ~ restock(medication : Medication, quantity : int) : RestockRecord
+    ~ addRepeatPrescription(prescription : RepeatPrescription) : void
+    ~ removeRepeatPrescription(patient : Customer, medication : Medication) : void
+    ~ restockRecommendations() : List<RestockRecommendation>
+    ~ getMedications() / getTransactions() / getRepeatPrescriptions()  // List.copyOf
+  }
+  class Medication {
+    .. only owner of the stock count; it can never go below zero ..
+    - name : String
+    - price : BigDecimal
+    - category : Category
+    - stock : int
+    --
+    ~ removeStock(quantity : int) : void  // throws InsufficientStockException
+    ~ addStock(quantity : int) : void
+    ~ getName() / getPrice() / getCategory() / getStock()
+  }
+  class Customer {
+    .. history: only Pharmacy adds; callers get a copy ..
+    - name : String
+    - kind : CustomerKind
+    - phone : String
+    - history : List<String>
+    --
+    ~ recordInHistory(entry : String) : void
+    ~ getHistory() : List<String>  // List.copyOf
+    ~ getName() / getKind() / getPhone()
+  }
+  enum Category {
+    OTC(false)
+    PRESCRIPTION(true)
+    .. controlled substances = add CONTROLLED(true) ..
+    - requiresPrescriber : boolean
+    --
+    ~ requiresPrescriber() : boolean
+    ~ checkCanDispense(medicationName : String, prescriber : String) : void
+  }
+  enum CustomerKind {
+    WALK_IN(1)
+    REGISTERED(0.95)
+    .. the discount lives in one place ..
+    - priceMultiplier : BigDecimal
+    --
+    ~ applyDiscount(total : BigDecimal) : BigDecimal
+  }
+}
+
+package "Records (immutable)" {
+  interface Transaction <<sealed>> {
+    ~ medication() : Medication
+    ~ quantity() : int
+  }
+  class DispenseRecord <<record>> {
+    customer : Customer
+    medication : Medication
+    quantity : int
+    total : BigDecimal
+    prescriber : String
+  }
+  class RestockRecord <<record>> {
+    medication : Medication
+    quantity : int
+  }
+}
+
+package "Improvement: repeat prescriptions" {
+  class RepeatPrescription <<record>> {
+    .. registered patients only; checked when created ..
+    patient : Customer
+    medication : Medication
+    quantityPerPickup : int
+    daysBetweenPickups : int
+    prescriber : String
+    --
+    ~ pickupsWithin(days : int) : int
+  }
+  class RestockRecommendation <<record>> {
+    medication : Medication
+    needed : int
+    inStock : int
+    toOrder : int
+  }
+}
+
+package "Refusals" {
+  class DispenseRefusedException <<checked>>
+  class InsufficientStockException
+  class MissingPrescriberException
+}
+
+PharmacyTracker -right..> PharmacyActivityPrinter : prints with
+PharmacyTracker ..> Pharmacy : calls
+Pharmacy "1" o-- "*" Medication
+Pharmacy "1" o-- "*" Customer
+Pharmacy "1" *-- "*" Transaction
+Pharmacy "1" *-- "*" RepeatPrescription
+Pharmacy ..> RestockRecommendation : creates
+Medication --> Category
+Customer --> CustomerKind
+Transaction <|.. DispenseRecord
+Transaction <|.. RestockRecord
+DispenseRefusedException <|-- InsufficientStockException
+DispenseRefusedException <|-- MissingPrescriberException
+Medication ..> InsufficientStockException : throws
+Category ..> MissingPrescriberException : throws
+
+@enduml
