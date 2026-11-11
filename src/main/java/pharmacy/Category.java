@@ -16,7 +16,7 @@ enum Category {
 
     void checkCanDispense(String medicationName, String prescriber)
             throws MissingPrescriberException {
-        if (requiresPrescriber && prescriber == null) {
+        if (requiresPrescriber && (prescriber == null || prescriber.isBlank())) {
             throw new MissingPrescriberException(medicationName);
         }
     }

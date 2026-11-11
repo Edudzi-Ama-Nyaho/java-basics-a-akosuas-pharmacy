@@ -1,6 +1,7 @@
 package pharmacy;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 class Medication {
     private final String name;
@@ -9,10 +10,20 @@ class Medication {
     private int stock;
 
     Medication(String name, BigDecimal price, int initialStock, Category category) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Medication name is required");
+        }
+        Objects.requireNonNull(price, "price");
+        if (price.signum() < 0) {
+            throw new IllegalArgumentException("Price cannot be negative, got " + price);
+        }
+        if (initialStock < 0) {
+            throw new IllegalArgumentException("Initial stock cannot be negative, got " + initialStock);
+        }
         this.name = name;
         this.price = price;
         this.stock = initialStock;
-        this.category = category;
+        this.category = Objects.requireNonNull(category, "category");
     }
 
     String getName() {

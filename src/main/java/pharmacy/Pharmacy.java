@@ -3,6 +3,7 @@ package pharmacy;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 class Pharmacy {
     private final String name;
@@ -15,11 +16,11 @@ class Pharmacy {
     }
 
     void addMedication(Medication m) {
-        medications.add(m);
+        medications.add(Objects.requireNonNull(m, "medication"));
     }
 
     void addCustomer(Customer c) {
-        customers.add(c);
+        customers.add(Objects.requireNonNull(c, "customer"));
     }
 
     String getName() {
@@ -37,6 +38,8 @@ class Pharmacy {
     // One path for every category; the category decides its own rule.
     DispenseRecord dispense(Customer c, Medication m, int qty, String prescriber)
             throws DispenseRefusedException {
+        Objects.requireNonNull(c, "customer");
+        Objects.requireNonNull(m, "medication");        
         m.getCategory().checkCanDispense(m.getName(), prescriber);
         BigDecimal total = c.getKind().applyDiscount(m.getPrice().multiply(BigDecimal.valueOf(qty)));
         m.removeStock(qty);
@@ -47,6 +50,7 @@ class Pharmacy {
     }
 
     RestockRecord restock(Medication m, int qty) {
+        Objects.requireNonNull(m, "medication");
         m.addStock(qty);
         RestockRecord record = new RestockRecord(m, qty);
         transactions.add(record);
