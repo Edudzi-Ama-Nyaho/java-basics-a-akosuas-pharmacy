@@ -10,53 +10,46 @@ class Pharmacy {
     private final List<Customer> customers = new ArrayList<>();
     private final List<Transaction> transactions = new ArrayList<>();
 
-    public Pharmacy(String name) {
+    Pharmacy(String name) {
         this.name = name;
     }
 
-    public void addMedication(Medication m) {
+    void addMedication(Medication m) {
         medications.add(m);
     }
 
-    public void addCustomer(Customer c) {
+    void addCustomer(Customer c) {
         customers.add(c);
     }
 
-        // One path for every category; the category decides its own rule.
-    public void dispense(Customer c, Medication m, int qty, String prescriber)
+    String getName() {
+        return name;
+    }
+
+    List<Medication> getMedications() {
+        return List.copyOf(medications);
+    }
+
+    List<Transaction> getTransactions() {
+        return List.copyOf(transactions);
+    }
+
+    // One path for every category; the category decides its own rule.
+    DispenseRecord dispense(Customer c, Medication m, int qty, String prescriber)
             throws DispenseRefusedException {
         m.getCategory().checkCanDispense(m.getName(), prescriber);
         BigDecimal total = c.getKind().applyDiscount(m.getPrice().multiply(BigDecimal.valueOf(qty)));
         m.removeStock(qty);
-        if (m.getCategory().requiresPrescriber()) {
-            System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.getName()
-                    + " (prescribed by " + prescriber + ") for GHS " + total.doubleValue());
-        } else {
-            System.out.println("Dispensed " + qty + " x " + m.getName() + " to " + c.getName()
-                    + " for GHS " + total.doubleValue());
-        }
         c.recordInHistory("Got " + qty + " x " + m.getName());
-        transactions.add(new DispenseRecord(c, m, qty, total, prescriber));
+        DispenseRecord record = new DispenseRecord(c, m, qty, total, prescriber);
+        transactions.add(record);
+        return record;
     }
 
-
-    public void restock(Medication m, int qty) {
+    RestockRecord restock(Medication m, int qty) {
         m.addStock(qty);
-        transactions.add(new RestockRecord(m, qty));
-        System.out.println("Restocked " + qty + " x " + m.getName());
-    }
-
-    public List<Transaction> getTransactions() {
-        return List.copyOf(transactions);
-    }
-
-    public void printReport() {
-        System.out.println();
-        System.out.println("=== " + name + " - end of day ===");
-        System.out.println("Stock levels:");
-        for (Medication m : medications) {
-            System.out.println("  " + m.getName() + " (" + m.getCategory() + "): " + m.getStock() + " in stock");
-        }
-        System.out.println("Transactions today: " + transactions.size());
+        RestockRecord record = new RestockRecord(m, qty);
+        transactions.add(record);
+        return record;
     }
 }
