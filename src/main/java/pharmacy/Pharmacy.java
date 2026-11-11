@@ -5,17 +5,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 class Pharmacy {
-    public String name;
-    public List<Medication> meds = new ArrayList<>();
-    public List<Customer> customers = new ArrayList<>();
-    private List<Transaction> transactions = new ArrayList<>();
+    private final String name;
+    private final List<Medication> medications = new ArrayList<>();
+    private final List<Customer> customers = new ArrayList<>();
+    private final List<Transaction> transactions = new ArrayList<>();
 
     public Pharmacy(String name) {
         this.name = name;
     }
 
     public void addMedication(Medication m) {
-        meds.add(m);
+        medications.add(m);
     }
 
     public void addCustomer(Customer c) {
@@ -41,24 +41,24 @@ class Pharmacy {
                     + " (prescribed by " + prescriber + ") for GHS " + total.doubleValue());
         }
         c.recordInHistory("Got " + qty + " x " + m.getName());
-        transactions.add(new Transaction(c.getName(), m.getName(), qty, total, "DISPENSE"));
+        transactions.add(new DispenseRecord(c, m, qty, total, prescriber));
     }
 
     public void restock(Medication m, int qty) {
         m.addStock(qty);
-        transactions.add(new Transaction("(supplier)", m.getName(), qty, BigDecimal.ZERO, "RESTOCK"));
+        transactions.add(new RestockRecord(m, qty));
         System.out.println("Restocked " + qty + " x " + m.getName());
     }
 
     public List<Transaction> getTransactions() {
-        return transactions; // hand the list back so callers can read it
+        return List.copyOf(transactions);
     }
 
     public void printReport() {
         System.out.println();
         System.out.println("=== " + name + " - end of day ===");
         System.out.println("Stock levels:");
-        for (Medication m : meds) {
+        for (Medication m : medications) {
             System.out.println("  " + m.getName() + " (" + m.getCategory() + "): " + m.getStock() + " in stock");
         }
         System.out.println("Transactions today: " + transactions.size());
