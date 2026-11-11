@@ -9,18 +9,20 @@ import java.util.List;
  */
 class PharmacyActivityPrinter {
 
+    /** Money is printed with doubleValue() so the text matches the original (25.0, 28.5). */
     void printDispense(DispenseRecord record) {
-        Medication m = record.medication();
-        String prescribedBy = m.getCategory().requiresPrescriber()
+        Medication medication = record.medication();
+        String prescribedBy = medication.getCategory().requiresPrescriber()
                 ? " (prescribed by " + record.prescriber() + ")"
                 : "";
-        System.out.println("Dispensed " + record.quantity() + " x " + m.getName() + " to "
-                + record.customer().getName() + prescribedBy + " for GHS "
+        System.out.println("Dispensed " + record.quantity() + " x " + medication.getName()
+                + " to " + record.customer().getName() + prescribedBy + " for GHS "
                 + record.total().doubleValue());
     }
 
     void printRestock(RestockRecord record) {
-        System.out.println("Restocked " + record.quantity() + " x " + record.medication().getName());
+        System.out.println("Restocked " + record.quantity() + " x "
+                + record.medication().getName());
     }
 
     void printRefusal(String message) {
@@ -31,21 +33,25 @@ class PharmacyActivityPrinter {
         System.out.println();
         System.out.println("=== " + pharmacy.getName() + " - end of day ===");
         System.out.println("Stock levels:");
-        for (Medication m : pharmacy.getMedications()) {
-            System.out.println("  " + m.getName() + " (" + m.getCategory() + "): " + m.getStock() + " in stock");
+        for (Medication medication : pharmacy.getMedications()) {
+            System.out.println("  " + medication.getName() + " (" + medication.getCategory()
+                    + "): " + medication.getStock() + " in stock");
         }
         System.out.println("Transactions today: " + pharmacy.getTransactions().size());
     }
 
+    /** Shows staff what to order so repeat-prescription pick-ups in the planning window are met. */
     void printRestockRecommendations(List<RestockRecommendation> recommendations) {
         System.out.println("Restock needed for repeat prescriptions (next "
                 + Pharmacy.PLANNING_DAYS + " days):");
         if (recommendations.isEmpty()) {
             System.out.println("  None - stock covers all upcoming pick-ups");
         }
-        for (RestockRecommendation r : recommendations) {
-            System.out.println("  " + r.medication().getName() + ": need " + r.needed()
-                    + ", have " + r.inStock() + ", order " + r.toOrder());
+        for (RestockRecommendation recommendation : recommendations) {
+            System.out.println("  " + recommendation.medication().getName()
+                    + ": need " + recommendation.needed()
+                    + ", have " + recommendation.inStock()
+                    + ", order " + recommendation.toOrder());
         }
     }
 }

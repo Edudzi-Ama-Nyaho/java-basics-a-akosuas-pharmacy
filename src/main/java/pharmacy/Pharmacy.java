@@ -7,9 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Coordinates the pharmacy's work: registering medicines and customers, dispensing,
+ * restocking, and planning stock for repeat prescriptions. It never prints; it returns records.
+ */
 class Pharmacy {
     private final String name;
     private final List<Medication> medications = new ArrayList<>();
+    // The customer register: each customer ID points to one customer.
     private final Map<Integer, Customer> customers = new LinkedHashMap<>();
     private final List<Transaction> transactions = new ArrayList<>();
     private final List<RepeatPrescription> repeatPrescriptions = new ArrayList<>();
@@ -22,22 +27,23 @@ class Pharmacy {
         this.name = name;
     }
 
-    void addMedication(Medication m) {
-        medications.add(Objects.requireNonNull(m, "medication"));
+    void addMedication(Medication medication) {
+        medications.add(Objects.requireNonNull(medication, "medication"));
     }
 
     /** Registers a customer and returns their customer ID (1, 2, 3, ... in this pharmacy). */
-    int addCustomer(Customer c) {
-        Objects.requireNonNull(c, "customer");
-        if (customers.containsValue(c)) {
-            throw new IllegalArgumentException(c.getName() + " is already registered");
+    int addCustomer(Customer customer) {
+        Objects.requireNonNull(customer, "customer");
+        if (customers.containsValue(customer)) {
+            throw new IllegalArgumentException(customer.getName() + " is already registered");
         }
         int id = nextCustomerId;
         nextCustomerId++;
-        customers.put(id, c);
+        customers.put(id, customer);
         return id;
     }
 
+    /** Looks a customer up by their ID; refuses an ID that isn't registered. */
     Customer findCustomer(int id) {
         Customer customer = customers.get(id);
         if (customer == null) {
@@ -46,6 +52,11 @@ class Pharmacy {
         return customer;
     }
 
+    /**
+     * Adds a repeat prescription for one of this pharmacy's customers.
+     * Refuses a patient who isn't registered here, and a second one for the same patient and
+     * medicine, because a duplicate would double-count what is needed and cause over-ordering.
+     */
     void addRepeatPrescription(RepeatPrescription prescription) {
         Objects.requireNonNull(prescription, "prescription");
         if (!customers.containsValue(prescription.patient())) {
@@ -63,9 +74,11 @@ class Pharmacy {
         repeatPrescriptions.add(prescription);
     }
 
+    /** Removes a patient's repeat prescription for a medicine; refuses if there isn't one. */
     void removeRepeatPrescription(Customer patient, Medication medication) {
         boolean removed = repeatPrescriptions.removeIf(
-                p -> p.patient() == patient && p.medication() == medication);
+                prescription -> prescription.patient() == patient
+                        && prescription.medication() == medication);
         if (!removed) {
             throw new IllegalArgumentException("No repeat prescription to remove");
         }
@@ -75,13 +88,19 @@ class Pharmacy {
         return List.copyOf(repeatPrescriptions);
     }
 
-    /** Medicines whose stock won't cover the repeat-prescription pick-ups due in the planning window. */
+    /**
+     * Medicines whose stock won't cover the repeat-prescription pick-ups due in the
+     * planning window, with how many of each to order.
+     */
     List<RestockRecommendation> restockRecommendations() {
+        // Add up, per medicine, everything needed for the pick-ups in the planning window.
         Map<Medication, Integer> needed = new LinkedHashMap<>();
-        for (RepeatPrescription p : repeatPrescriptions) {
-            int forWindow = p.quantityPerPickup() * p.pickupsWithin(PLANNING_DAYS);
-            needed.merge(p.medication(), forWindow, Integer::sum);
+        for (RepeatPrescription prescription : repeatPrescriptions) {
+            int forWindow = prescription.quantityPerPickup()
+                    * prescription.pickupsWithin(PLANNING_DAYS);
+            needed.merge(prescription.medication(), forWindow, Integer::sum);
         }
+        // Recommend ordering exactly the shortfall, so nothing extra sits on the shelf.
         List<RestockRecommendation> recommendations = new ArrayList<>();
         for (Map.Entry<Medication, Integer> entry : needed.entrySet()) {
             Medication medication = entry.getKey();
@@ -98,32 +117,41 @@ class Pharmacy {
         return name;
     }
 
+    /** A read-only copy of the medicines, in the order they were added. */
     List<Medication> getMedications() {
         return List.copyOf(medications);
     }
 
+    /** A read-only copy of today's transactions; the real list can't be changed from outside. */
     List<Transaction> getTransactions() {
         return List.copyOf(transactions);
     }
 
-    // One path for every category; the category decides its own rule.
-    DispenseRecord dispense(Customer c, Medication m, int qty, String prescriber)
-            throws DispenseRefusedException {
-        Objects.requireNonNull(c, "customer");
-        Objects.requireNonNull(m, "medication");
-        m.getCategory().checkCanDispense(m.getName(), prescriber);
-        BigDecimal total = c.getKind().applyDiscount(m.getPrice().multiply(BigDecimal.valueOf(qty)));
-        m.removeStock(qty);
-        c.recordInHistory("Got " + qty + " x " + m.getName());
-        DispenseRecord record = new DispenseRecord(c, m, qty, total, prescriber);
+    /**
+     * Dispenses medicine: one path for every category, and the category decides its own rule.
+     * The order matters: the prescriber and stock checks run before anything is recorded,
+     * so a refused dispense changes nothing.
+     */
+    DispenseRecord dispense(Customer customer, Medication medication, int quantity,
+            String prescriber) throws DispenseRefusedException {
+        Objects.requireNonNull(customer, "customer");
+        Objects.requireNonNull(medication, "medication");
+        medication.getCategory().checkCanDispense(medication.getName(), prescriber);
+        BigDecimal total = customer.getKind().applyDiscount(
+                medication.getPrice().multiply(BigDecimal.valueOf(quantity)));
+        medication.removeStock(quantity);
+        customer.recordInHistory("Got " + quantity + " x " + medication.getName());
+        DispenseRecord record =
+                new DispenseRecord(customer, medication, quantity, total, prescriber);
         transactions.add(record);
         return record;
     }
 
-    RestockRecord restock(Medication m, int qty) {
-        Objects.requireNonNull(m, "medication");
-        m.addStock(qty);
-        RestockRecord record = new RestockRecord(m, qty);
+    /** Adds stock and records the restock. */
+    RestockRecord restock(Medication medication, int quantity) {
+        Objects.requireNonNull(medication, "medication");
+        medication.addStock(quantity);
+        RestockRecord record = new RestockRecord(medication, quantity);
         transactions.add(record);
         return record;
     }
